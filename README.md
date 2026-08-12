@@ -1,5 +1,32 @@
 # ¿Desde dónde veo el eclipse?
 
+> ⚠️ **Léeme antes de fiarte de nada de esto.**
+>
+> Esta aplicación **la ha escrito Claude** (el modelo de IA de Anthropic), de
+> principio a fin, **en unos 30 minutos**. Nadie ha revisado el código a fondo,
+> nadie ha contrastado los resultados con una fuente independiente y no hay
+> tests más allá de un puñado de comprobaciones que la propia IA se hizo a sí
+> misma. Es decir: **está sin verificar**.
+>
+> Los números que verás (horas de contacto, duración de la totalidad,
+> porcentajes de ocultación, alturas del Sol, puntuaciones) **pueden estar mal**,
+> y estarlo de forma silenciosa y convincente. Un error de signo, un desfase
+> horario o una interpolación mal hecha no se notan a simple vista: salen como
+> un número perfectamente creíble.
+>
+> **Nadie en su sano juicio debería planificar un viaje —ni mucho menos decidir
+> dónde ponerse el día del eclipse— basándose solo en lo que dice esta web.**
+> Úsala como juguete, como punto de partida o como curiosidad técnica, y
+> **contrasta siempre** con fuentes serias antes de tomar cualquier decisión:
+>
+> - [NASA / GSFC — Eclipse del 12 ago 2026](https://eclipse.gsfc.nasa.gov/SEsearch/SEsearchmap.php?Ecl=20260812)
+> - [timeanddate.com](https://www.timeanddate.com/eclipse/solar/2026-august-12)
+> - [Xavier Jubier — Interactive Google Map](http://xjubier.free.fr/en/site_pages/solar_eclipses/TSE_2026_GoogleMapFull.html)
+> - AEMET u otro servicio meteorológico oficial para la predicción de nubes
+>
+> Y lo único que **no** es negociable: **nunca mires al Sol sin filtro
+> homologado ISO 12312-2**, diga lo que diga cualquier mapa.
+
 Mapa para decidir **a qué sitio ir** a ver el eclipse total de Sol del
 **12 de agosto de 2026** en el norte de España.
 
@@ -18,10 +45,12 @@ no dibujada a ojo. Al tocar cualquier punto del mapa:
 - contactos C1/C2/C3/C4, hora del máximo y duración de la totalidad
 - altura y azimut del Sol en el momento clave
 
-Validado contra la tabla oficial de la trayectoria de la NASA: línea central con
-error de ~100 m, γ = 0.8978 exacto, anchuras de banda 319/315/306 km frente a
-319/315/304 km, y duraciones que coinciden con las publicadas (Oviedo 1 m 48 s,
-Zaragoza 1 m 24 s, Palma 1 m 36 s, A Coruña ~1 m 16 s).
+Comparado —por la propia IA que lo escribió, sin revisión externa— contra unas
+pocas filas de la tabla oficial de la trayectoria de la NASA: línea central con
+error de ~100 m, γ = 0.8978, anchuras de banda 319/315/306 km frente a
+319/315/304 km, y duraciones parecidas a las publicadas (Oviedo 1 m 48 s,
+Zaragoza 1 m 24 s, Palma 1 m 36 s, A Coruña ~1 m 16 s). Que coincidan cuatro
+ciudades **no demuestra** que el resto del mapa esté bien.
 
 **Nubes en la línea de visión** — el detalle que cambia todo en este eclipse.
 Con el Sol a 2-12° sobre el horizonte, lo que te tapa el Sol **no son las nubes
@@ -110,6 +139,9 @@ estáticos. El fichero `.nojekyll` evita que Jekyll se meta por medio.
 
 Advertencias honestas:
 
+- **Código generado por IA en ~30 minutos y sin verificar por nadie.** No hay
+  tests, no hay revisión humana del motor de cálculo y no se ha contrastado con
+  una implementación independiente. Asume que puede haber errores.
 - La geometría precalculada cubre el Atlántico norte y Europa occidental
   (lat 25-84 N, lon 60 O - 25 E). El cálculo por punto funciona en toda la zona
   de visibilidad.
