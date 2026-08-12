@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Desde dónde veo el eclipse? · 12 agosto 2026</title>
+<meta name="description" content="Mapa para decidir dónde ver el eclipse total de Sol del 12 de agosto de 2026: banda de totalidad calculada, nubosidad multimodelo y horizonte.">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='38' fill='%23101418'/><circle cx='50' cy='50' r='38' fill='none' stroke='%23ffd166' stroke-width='5'/></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div id="map"></div>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="glyph" aria-hidden="true"></span>
+    <div>
+      <h1>¿Desde dónde veo el eclipse?</h1>
+      <p id="subtitle">12 de agosto de 2026 · totalidad al atardecer</p>
+    </div>
+  </div>
+  <button id="btn-locate" class="icon-btn" title="Ir a mi ubicación">◎</button>
+</header>
+
+<div id="toolbar">
+  <button class="tool" data-layer="score">Calidad</button>
+  <button class="tool" data-layer="cloud">Nubes</button>
+  <button class="tool" data-layer="sat">Satélite</button>
+  <button class="tool active" data-layer="totality">Totalidad</button>
+</div>
+
+<div id="analyze-bar">
+  <button id="btn-analyze">Analizar nubes en esta zona</button>
+  <div id="time-control" hidden>
+    <label for="time-offset">Momento</label>
+    <input type="range" id="time-offset" min="-120" max="120" step="15" value="0">
+    <output id="time-offset-label">en la totalidad</output>
+  </div>
+</div>
+
+<div id="legend" hidden>
+  <div class="legend-title"></div>
+  <div class="legend-bar"></div>
+  <div class="legend-labels"><span></span><span></span></div>
+</div>
+
+<section id="panel" class="collapsed" aria-live="polite">
+  <button id="panel-handle" aria-label="Desplegar detalle"><span></span></button>
+  <div id="panel-body">
+    <div class="empty">
+      <h2>Toca un punto del mapa</h2>
+      <p>Te digo si desde ahí se ve la <strong>totalidad</strong>, a qué hora,
+         cuánto dura, qué nubes hay en la línea de visión hacia el Sol y si
+         el relieve te lo va a tapar.</p>
+      <p class="muted">La franja dorada es la banda de totalidad, calculada con los
+         elementos besselianos de la NASA. Fuera de ella el eclipse es parcial:
+         no es lo mismo, ni de lejos.</p>
+    </div>
+  </div>
+</section>
+
+<div id="toast" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/besselian.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/cloudlayer.js"></script>
+<script src="js/places.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
