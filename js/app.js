@@ -184,18 +184,28 @@
     drawSightline(lat, lon, circ);
 
     var sl = Weather.sightlinePoints(lat, lon, circ.sunAlt, circ.sunAz);
-    var pts = [sl.here, sl.low, sl.mid, sl.high];
+    var ids = Weather.MODELS.map(function (m) { return m.id; });
+    var wxErr = null;
+
+    // Dos peticiones en vez de una: del punto del observador interesan las seis
+    // variables, pero de cada punto de la linea de vision solo se usa su capa.
+    // Pedir las seis en los cuatro puntos gastaba el triple de cuota por nada.
+    var forecast = Promise.all([
+      Weather.fetchForecast([sl.here], ids, Weather.HOURLY),
+      Weather.fetchForecast([sl.low, sl.mid, sl.high], ids, Weather.GRID_HOURLY)
+    ]).then(function (parts) {
+      return parts[0].concat(parts[1]);       // [here, low, mid, high]
+    }).catch(function (e) { console.warn(e); wxErr = e; return null; });
 
     Promise.all([
-      Weather.fetchForecast(pts, Weather.MODELS.map(function (m) { return m.id; }), Weather.HOURLY)
-        .catch(function (e) { console.warn(e); return null; }),
+      forecast,
       Weather.fetchHorizon(lat, lon, circ.sunAz),
       Weather.fetchMinutely15(lat, lon)
     ]).then(function (res) {
       if (myReq !== state.reqId) return;      // hubo otro clic mientras tanto
       renderPanel(circ, lat, lon,
         res[0] ? { forecast: res[0], sl: sl, minutely: res[2] } : null,
-        res[1], false);
+        res[1], false, wxErr);
     });
   }
 
@@ -236,7 +246,30 @@
 
   /* ------------------------------------------------------------ panel */
 
-  function renderPanel(circ, lat, lon, wx, horizon, loading) {
+  /**
+   * Explica por que no hay prevision. El 429 de Open-Meteo (cuota agotada) es
+   * el caso frecuente y no se arregla insistiendo: hay que esperar. Conviene
+   * decirlo en lugar de culpar a la conexion del usuario.
+   */
+  function wxErrorNote(err) {
+    if (Weather.quotaBlockedUntil() || (err && err.status === 429)) {
+      return '<p class="note"><strong>Se ha agotado la cuota gratuita de Open-Meteo</strong> ' +
+        'para esta conexión, no es un problema tuyo. Cada consulta cuesta ' +
+        'puntos × variables × modelos, y “Analizar zona” gasta mucho de golpe. ' +
+        'Suele liberarse en unos minutos, como muy tarde al cambiar de hora. ' +
+        retryButton() + '</p>';
+    }
+    var extra = err && err.reason ? ': <strong>' + esc(err.reason) + '</strong>'
+      : err && err.message ? ' (' + esc(err.message) + ')' : '';
+    return '<p class="note">No se pudo consultar la previsión' + extra + '. ' +
+      retryButton() + '</p>';
+  }
+
+  function retryButton() {
+    return '<button type="button" class="retry" id="btn-retry">Reintentar</button>';
+  }
+
+  function renderPanel(circ, lat, lon, wx, horizon, loading, wxErr) {
     var body = document.getElementById('panel-body');
     var place = Places.nearest(lat, lon, 60);
     var title = place ? place.name + (place.km > 6 ? ' (a ' + place.km.toFixed(0) + ' km)' : '') : 'Punto seleccionado';
@@ -326,7 +359,7 @@
     if (loading) {
       html += '<div class="loading"><span class="spinner"></span>Consultando modelos meteorológicos…</div>';
     } else if (!wx) {
-      html += '<p class="note">No se pudo consultar la previsión. Revisa la conexión y vuelve a tocar el punto.</p>';
+      html += wxErrorNote(wxErr);
     } else {
       html += modelTable(perModel, cloud);
       html += '<p class="note">Con el Sol a ' + deg(circ.sunAlt) + ', la línea de visión no pasa por ' +
@@ -353,7 +386,8 @@
     if (loading) {
       html += '<div class="loading"><span class="spinner"></span>Analizando el relieve…</div>';
     } else if (!horizon) {
-      html += '<p class="note">No se pudo obtener el perfil del terreno.</p>';
+      html += '<p class="note">No se pudo obtener el perfil del terreno' +
+        (Weather.quotaBlockedUntil() ? ' (misma cuota de Open-Meteo agotada)' : '') + '.</p>';
     } else {
       var margin = circ.sunAlt - horizon.angle;
       html += '<dl class="rows">';
@@ -397,6 +431,14 @@
       'Horas en hora peninsular española.</p>';
 
     body.innerHTML = html;
+
+    var retry = document.getElementById('btn-retry');
+    if (retry) {
+      retry.addEventListener('click', function () {
+        Weather.clearQuotaBlock();
+        selectPoint(lat, lon);
+      });
+    }
   }
 
   function row(label, value, hi) {
@@ -489,9 +531,15 @@
     };
   }
 
+  // Cada nodo de la rejilla cuesta (variables x modelos) unidades de la cuota
+  // horaria de Open-Meteo, que en el plan gratuito son unas 5.000. Con 150
+  // nodos, 3 variables y 3 modelos cada analisis gasta ~1.350: se pueden hacer
+  // tres o cuatro por hora. Subir esto vuelve a agotar la cuota enseguida.
+  var GRID_MAX_POINTS = 150;
+
   function analyzeArea() {
     var btn = document.getElementById('btn-analyze');
-    var spec = buildGridSpec(state.map.getBounds(), 300);
+    var spec = buildGridSpec(state.map.getBounds(), GRID_MAX_POINTS);
 
     var nodes = [];
     for (var j = 0; j < spec.ny; j++) {
@@ -530,7 +578,9 @@
       console.error(err);
       btn.textContent = 'Analizar nubes en esta zona';
       btn.disabled = false;
-      toast('Error consultando Open-Meteo: ' + err.message);
+      toast(Weather.quotaBlockedUntil()
+        ? 'Cuota gratuita de Open-Meteo agotada. Espera unos minutos y reintenta.'
+        : 'Error consultando Open-Meteo: ' + err.message, 6000);
     });
   }
 

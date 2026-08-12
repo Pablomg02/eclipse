@@ -186,6 +186,14 @@ table.models tr.total-row td { font-weight: 650; border-bottom: 0; }
 .note { font-size: 12px; color: var(--muted); margin: 7px 0 0; }
 .note strong { color: #c2ccd8; }
 
+button.retry {
+  display: inline-block; margin-top: 6px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: rgba(22,27,34,.94); padding: 5px 12px;
+  font-size: 12px; font-weight: 600;
+}
+button.retry:hover { border-color: #4a5568; }
+
 .bar-mini { height: 5px; border-radius: 3px; background: #222932; overflow: hidden; margin-top: 5px; }
 .bar-mini > i { display: block; height: 100%; }
 

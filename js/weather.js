@@ -48,11 +48,68 @@
       .join('&');
   }
 
-  function getJSON(url) {
+  /*
+   * Red, cache y cuota.
+   *
+   * El plan gratuito de Open-Meteo limita por IP (unas 5.000 unidades/hora,
+   * 10.000/dia) y cada peticion cuesta puntos x variables x modelos. Al
+   * agotarla responde 429 a TODO -- tambien a la API de elevacion -- y la web
+   * entera se queda sin datos. Por eso aqui se hace tres cosas:
+   *   - cachear respuestas: la prevision no cambia cada minuto,
+   *   - recordar el 429 para no gastar peticiones que ya se sabe que fallan,
+   *   - propagar el motivo real del error, no un "no hay conexion" generico.
+   */
+  var CACHE_TTL = 10 * 60 * 1000;
+  // Tras un 429 se deja de pedir durante un rato. No se espera a la hora en
+  // punto porque el limite no se comporta como un contador que se ponga a cero
+  // ahi: si se comparte IP (CGNAT, wifi publica) puede liberarse antes o
+  // despues. Cinco minutos evitan machacar la API sin dejar la web muerta.
+  var QUOTA_COOLDOWN = 5 * 60 * 1000;
+  var cache = new Map();
+  var quotaUntil = 0;
+
+  /** Instante en que se volvera a intentar, o 0 si la cuota no esta agotada. */
+  function quotaBlockedUntil() {
+    return quotaUntil > Date.now() ? quotaUntil : 0;
+  }
+
+  /** Olvida el bloqueo para permitir un reintento manual. */
+  function clearQuotaBlock() { quotaUntil = 0; }
+
+  function apiError(status, reason, url) {
+    var e = new Error(reason || ('HTTP ' + status + ' en ' + url.split('?')[0]));
+    e.status = status;
+    e.reason = reason || null;
+    return e;
+  }
+
+  function request(url) {
     return fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status + ' en ' + url.split('?')[0]);
-      return r.json();
+      if (r.ok) return r.json();
+      // Open-Meteo explica el motivo en el cuerpo, incluso en los 4xx.
+      return r.text().then(function (body) {
+        var reason = null;
+        try { reason = JSON.parse(body).reason; } catch (e) { /* cuerpo no JSON */ }
+        if (r.status === 429) quotaUntil = Date.now() + QUOTA_COOLDOWN;
+        throw apiError(r.status, reason, url);
+      });
     });
+  }
+
+  function getJSON(url) {
+    var hit = cache.get(url);
+    if (hit && Date.now() - hit.t < CACHE_TTL) return hit.p;
+    if (quotaBlockedUntil()) {
+      return Promise.reject(apiError(429,
+        'Cuota horaria de Open-Meteo agotada para esta red.', url));
+    }
+    var p = request(url);
+    cache.set(url, { t: Date.now(), p: p });
+    p.catch(function () {
+      var c = cache.get(url);
+      if (c && c.p === p) cache.delete(url);      // los fallos no se cachean
+    });
+    return p;
   }
 
   function chunk(arr, n) {
@@ -333,6 +390,8 @@
     LAYER_H: LAYER_H,
     OPACITY: OPACITY,
     fetchForecast: fetchForecast,
+    quotaBlockedUntil: quotaBlockedUntil,
+    clearQuotaBlock: clearQuotaBlock,
     fetchMinutely15: fetchMinutely15,
     fetchElevations: fetchElevations,
     fetchHorizon: fetchHorizon,
